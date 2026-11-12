@@ -1,5 +1,6 @@
 """Container for Pymordial UI elements representing a screen."""
 
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from uuid import uuid4
 
@@ -61,6 +62,36 @@ class PymordialScreen:
         if element.label in self.elements:
             raise ValueError(f"Element with label '{element.label}' already exists")
         self.elements[element.label] = element
+
+    def is_current_screen(
+        self,
+        is_visible: Callable[[PymordialElement], bool],
+        elements: Iterable[PymordialElement] | None = None,
+    ) -> bool:
+        """Checks whether this screen is the one currently displayed.
+
+        Asks the caller-supplied visibility check about each identifying
+        element. Pass ``controller.is_element_visible`` as ``is_visible``;
+        the screen takes a callable instead of a controller so this module
+        never imports the controller layer.
+
+        Args:
+            is_visible: Callable that takes an element and returns True
+                when it is currently visible on screen.
+            elements: Elements that identify this screen. Defaults to all
+                registered elements.
+
+        Returns:
+            True if every checked element is visible, False otherwise.
+            False when there are no elements to check: an empty screen
+            cannot identify itself.
+        """
+        to_check = (
+            list(elements) if elements is not None else list(self.elements.values())
+        )
+        if not to_check:
+            return False
+        return all(is_visible(element) for element in to_check)
 
     def get_element(self, label: str) -> PymordialElement:
         """Retrieves an element by its label.

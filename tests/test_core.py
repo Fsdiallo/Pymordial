@@ -140,3 +140,62 @@ class TestPymordialScreen:
         assert "title" in screen.elements
         assert screen.elements["title"] is element
         assert screen.elements["title"] is element
+
+    def test_is_current_screen_all_visible(self):
+        """Screen is current when every element is visible."""
+        from pymordial.ui.text import PymordialText
+
+        screen = PymordialScreen(name="MainMenu")
+        title = PymordialText(label="title", element_text="Play")
+        button = PymordialText(label="button", element_text="Start")
+        screen.add_element(title)
+        screen.add_element(button)
+
+        seen: list[PymordialElement] = []
+        assert screen.is_current_screen(lambda el: seen.append(el) or True) is True
+        assert seen == [title, button]
+
+    def test_is_current_screen_one_hidden(self):
+        """Screen is not current when any element is hidden."""
+        from pymordial.ui.text import PymordialText
+
+        screen = PymordialScreen(name="MainMenu")
+        title = PymordialText(label="title", element_text="Play")
+        button = PymordialText(label="button", element_text="Start")
+        screen.add_element(title)
+        screen.add_element(button)
+
+        seen: list[PymordialElement] = []
+
+        def fake_visible(element):
+            seen.append(element)
+            return element is title
+
+        assert screen.is_current_screen(fake_visible) is False
+        # Stops at the first hidden element.
+        assert seen == [title, button]
+
+    def test_is_current_screen_subset(self):
+        """Only the given elements are checked when a subset is passed."""
+        from pymordial.ui.text import PymordialText
+
+        screen = PymordialScreen(name="MainMenu")
+        title = PymordialText(label="title", element_text="Play")
+        button = PymordialText(label="button", element_text="Start")
+        screen.add_element(title)
+        screen.add_element(button)
+
+        seen: list[PymordialElement] = []
+        assert (
+            screen.is_current_screen(lambda el: seen.append(el) or True, [title])
+            is True
+        )
+        assert seen == [title]
+
+    def test_is_current_screen_empty(self):
+        """An empty screen cannot identify itself."""
+        screen = PymordialScreen(name="MainMenu")
+
+        seen: list[PymordialElement] = []
+        assert screen.is_current_screen(lambda el: seen.append(el) or True) is False
+        assert seen == []
